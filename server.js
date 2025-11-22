@@ -1,35 +1,51 @@
 const express = require('express');
 const cors = require('cors');
-const { sequelize } = require('./models'); // Importamos la conexión a la DB
+const { sequelize } = require('./models');
 
 // Importacion de RUTAS
 const userRoutes = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-authRoutes = require('./routes/authRoutes');
-
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 5000; // React suele usar el 3000, así que usaremos el 5000 para el backend
+const PORT = process.env.PORT || 5000;
 
-app.use(cors()); // Permite que React (puerto 3000) hable con este backend (puerto 5000)
-app.use(express.json()); // Permite que el backend entienda datos en formato JSON
+// --- Configuración de Middlewares ---
 
-// Ruta de prueba para ver si funciona
+const corsOptions = {
+    origin: 'http://localhost:3000',
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// --- ¡EL ESPÍA DEFINITIVO! ---
+// Este middleware se ejecutará en CADA petición que llegue
+app.use((req, res, next) => {
+    console.log(`\n--- PETICIÓN RECIBIDA: ${req.method} ${req.url} ---`);
+    console.log('--- HEADERS (Los "avisos"): ---');
+    console.log(req.headers);
+    console.log('\n--- BODY (El "paquete"): ---');
+    console.log(req.body);
+    console.log('-------------------------------------------\n');
+    next(); // Pasa a la siguiente ruta
+});
+// ------------------------------
+
+// --- Definición de Rutas ---
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'El servidor está vivo y coleando 🐷' });
 });
 
-// Uso de RUTAS
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/auth', authRoutes);
 
-// Iniciar el servidor
+// --- Inicio del Servidor ---
 app.listen(PORT, async () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    // Verificar conexión a la base de datos
     try {
         await sequelize.authenticate();
         console.log('✅ Conexión a PostgreSQL establecida correctamente.');
